@@ -1,0 +1,16 @@
+{
+  "name": "taets-travel-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for Taets Family Travel site",
+  "main": "src/functions/locations.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/data-tables": "^13.2.2",
+    "@azure/functions": "^4.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

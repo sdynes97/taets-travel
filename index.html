@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Where in the World is the Taets Family?</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet"/>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Merriweather', Georgia, serif;
+      background: #f5f0e8;
+      color: #3a2e1e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ──────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #c8392b 0%, #922b21 100%);
+      color: #fff;
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 3px 12px rgba(0,0,0,.35);
+      position: relative;
+      z-index: 999;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stamp-icon {
+      font-size: 2.4rem;
+      line-height: 1;
+    }
+
+    header h1 {
+      font-family: 'Caveat', cursive;
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.1;
+      text-shadow: 1px 2px 4px rgba(0,0,0,.3);
+    }
+
+    header h1 span {
+      font-size: 1.1rem;
+      font-weight: 400;
+      display: block;
+      opacity: .85;
+      font-family: 'Merriweather', serif;
+      letter-spacing: .5px;
+    }
+
+    .header-stats {
+      text-align: right;
+      font-size: .85rem;
+      opacity: .9;
+    }
+
+    .header-stats strong {
+      font-size: 1.6rem;
+      font-family: 'Caveat', cursive;
+      display: block;
+      line-height: 1;
+    }
+
+    /* ── LAYOUT ──────────────────────────────────── */
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── MAP ─────────────────────────────────────── */
+    #map {
+      flex: 1;
+      height: calc(100vh - 90px);
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────── */
+    .sidebar {
+      width: 330px;
+      background: #fdf8ef;
+      border-left: 3px solid #c8392b;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      background: #c8392b;
+      color: #fff;
+      padding: 12px 16px;
+      font-family: 'Caveat', cursive;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .postcard-entry {
+      border-bottom: 1px dashed #d4c5a0;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .postcard-entry:hover { background: #f0e9d8; }
+
+    .postcard-entry.active { background: #fdecea; border-left: 4px solid #c8392b; }
+
+    .entry-location {
+      font-size: .95rem;
+      font-weight: 700;
+      color: #922b21;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .entry-date {
+      font-size: .75rem;
+      color: #888;
+      margin-top: 2px;
+      font-style: italic;
+    }
+
+    .entry-msg {
+      font-size: .82rem;
+      margin-top: 6px;
+      color: #4a3e2e;
+      line-height: 1.45;
+      font-family: 'Caveat', cursive;
+      font-size: .95rem;
+    }
+
+    .postcard-stamp {
+      float: right;
+      background: #c8392b;
+      color: #fff;
+      font-size: .62rem;
+      padding: 4px 6px;
+      border-radius: 2px;
+      text-align: center;
+      min-width: 44px;
+      border: 1px solid #a93226;
+      font-family: 'Caveat', cursive;
+      font-size: .8rem;
+    }
+
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: #9e8f75;
+      font-family: 'Caveat', cursive;
+      font-size: 1.15rem;
+      line-height: 1.7;
+    }
+
+    /* ── LEAFLET POPUP ───────────────────────────── */
+    .postcard-popup {
+      min-width: 220px;
+      max-width: 280px;
+      font-family: 'Merriweather', serif;
+    }
+
+    .popup-header {
+      background: #c8392b;
+      color: #fff;
+      padding: 8px 12px;
+      margin: -12px -12px 10px;
+      font-size: .9rem;
+      font-weight: 700;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .popup-date {
+      font-size: .72rem;
+      color: #888;
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+
+    .popup-msg {
+      font-family: 'Caveat', cursive;
+      font-size: 1.05rem;
+      color: #3a2e1e;
+      line-height: 1.5;
+      border-top: 1px dashed #ccc;
+      padding-top: 8px;
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      header h1 { font-size: 1.4rem; }
+    }
+
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(245,240,232,.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+      font-family: 'Caveat', cursive;
+      font-size: 1.5rem;
+      color: #c8392b;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #e8d5c0;
+      border-top-color: #c8392b;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  Loading postcards…
+</div>
+
+<header>
+  <div class="header-title">
+    <div class="stamp-icon">✉️</div>
+    <h1>
+      Where in the World is the Taets Family?
+      <span>Tracking adventures one postcard at a time</span>
+    </h1>
+  </div>
+  <div class="header-stats">
+    <strong id="stat-count">—</strong>
+    places visited
+  </div>
+</header>
+
+<div class="main">
+  <div id="map"></div>
+
+  <aside class="sidebar">
+    <div class="sidebar-header">📮 Postcards Received</div>
+    <div class="sidebar-list" id="sidebar-list">
+      <div class="empty-state">Loading postcards…</div>
+    </div>
+  </aside>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // ── MAP SETUP ──────────────────────────────────
+  const map = L.map('map', {
+    center: [20, 0],
+    zoom: 2,
+    minZoom: 1
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 18
+  }).addTo(map);
+
+  // Custom postcard-red marker
+  function makeIcon(color = '#c8392b') {
+    return L.divIcon({
+      className: '',
+      html: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+        <path d="M14 0 C6.27 0 0 6.27 0 14 C0 24.5 14 36 14 36 C14 36 28 24.5 28 14 C28 6.27 21.73 0 14 0Z"
+              fill="${color}" stroke="#fff" stroke-width="2"/>
+        <circle cx="14" cy="14" r="6" fill="#fff"/>
+      </svg>`,
+      iconSize: [28, 36],
+      iconAnchor: [14, 36],
+      popupAnchor: [0, -36]
+    });
+  }
+
+  const markers = {};
+  let allLocations = [];
+
+  // ── LOAD LOCATIONS ─────────────────────────────
+  async function loadLocations() {
+    try {
+      const res = await fetch('/api/locations');
+      if (!res.ok) throw new Error('API error');
+      allLocations = await res.json();
+      renderMap(allLocations);
+      renderSidebar(allLocations);
+    } catch (e) {
+      document.getElementById('sidebar-list').innerHTML =
+        `<div class="empty-state">Could not load postcards.<br>Check your API connection.</div>`;
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  function renderMap(locations) {
+    document.getElementById('stat-count').textContent = locations.length;
+
+    locations.forEach((loc, i) => {
+      const marker = L.marker([loc.latitude, loc.longitude], { icon: makeIcon() })
+        .addTo(map)
+        .bindPopup(`
+          <div class="postcard-popup">
+            <div class="popup-header">📍 ${loc.name}${loc.country ? ', ' + loc.country : ''}</div>
+            <div class="popup-date">${formatDate(loc.visitDate)}</div>
+            ${loc.message ? `<div class="popup-msg">"${loc.message}"</div>` : ''}
+          </div>
+        `, { maxWidth: 300 });
+
+      marker.on('click', () => highlightEntry(loc.id));
+      markers[loc.id] = marker;
+    });
+
+    if (locations.length > 0) {
+      const group = L.featureGroup(Object.values(markers));
+      map.fitBounds(group.getBounds().pad(0.15));
+    }
+  }
+
+  function renderSidebar(locations) {
+    const list = document.getElementById('sidebar-list');
+    if (locations.length === 0) {
+      list.innerHTML = `<div class="empty-state">No postcards yet!<br>Send the family on an adventure… 🌍</div>`;
+      return;
+    }
+
+    list.innerHTML = locations.map(loc => `
+      <div class="postcard-entry" id="entry-${loc.id}" onclick="flyTo('${loc.id}')">
+        <div class="postcard-stamp">${formatYear(loc.visitDate)}</div>
+        <div class="entry-location">📍 ${loc.name}${loc.country ? ', ' + loc.country : ''}</div>
+        <div class="entry-date">${formatDate(loc.visitDate)}</div>
+        ${loc.message ? `<div class="entry-msg">"${loc.message}"</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function flyTo(id) {
+    const loc = allLocations.find(l => l.id === id);
+    if (!loc) return;
+    map.flyTo([loc.latitude, loc.longitude], 6, { duration: 1.2 });
+    setTimeout(() => markers[id]?.openPopup(), 1200);
+    highlightEntry(id);
+  }
+
+  function highlightEntry(id) {
+    document.querySelectorAll('.postcard-entry').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById('entry-' + id);
+    if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  }
+
+  function formatDate(d) {
+    if (!d) return '';
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function formatYear(d) {
+    if (!d) return '';
+    return d.substring(0, 4);
+  }
+
+  loadLocations();
+</script>
+</body>
+</html>
