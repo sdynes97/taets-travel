@@ -210,9 +210,6 @@
     <label>Location Name *</label>
     <input type="text" id="f-name" placeholder="e.g. Paris, Eiffel Tower, Lake Louise"/>
 
-    <label>Country</label>
-    <input type="text" id="f-country" placeholder="e.g. France"/>
-
     <label>Date of Visit *</label>
     <input type="date" id="f-date"/>
 
@@ -426,7 +423,6 @@
   // ── ADD LOCATION ───────────────────────────────
   async function addLocation() {
     const name = document.getElementById('f-name').value.trim();
-    const country = document.getElementById('f-country').value.trim();
     const date = document.getElementById('f-date').value;
     const msg = document.getElementById('f-msg').value.trim();
     const sentBy = document.getElementById('f-sentby').value.trim();
@@ -441,7 +437,7 @@
       const r = await fetch('/api/locations', {
         method: 'POST',
         headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ name, country, latitude: lat, longitude: lng, visitDate: date, message: msg, sentBy })
+        body: JSON.stringify({ name, latitude: lat, longitude: lng, visitDate: date, message: msg, sentBy })
       });
 
       if (r.status === 401) return sessionExpired();
@@ -460,7 +456,7 @@
   }
 
   function clearForm() {
-    ['f-name','f-country','f-date','f-msg','f-sentby','f-lat','f-lng','f-geocode'].forEach(id => {
+    ['f-name','f-date','f-msg','f-sentby','f-lat','f-lng','f-geocode'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('geocode-result').textContent = '';
@@ -479,7 +475,7 @@
       list.innerHTML = locs.map(loc => `
         <div class="location-item">
           <div class="loc-info">
-            <div class="loc-name">📍 ${escText(loc.name)}${loc.country ? ', ' + escText(loc.country) : ''}</div>
+            <div class="loc-name">📍 ${escText(loc.name)}</div>
             <div class="loc-meta">${formatDate(loc.visitDate)}${loc.sentBy ? ' · from ' + escText(loc.sentBy) : ''} · ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</div>
             ${loc.message ? `<div class="loc-msg">"${escText(loc.message)}"</div>` : ''}
           </div>

@@ -36,7 +36,6 @@ app.http('getLocations', {
                 locations.push({
                     id: entity.rowKey,
                     name: entity.name,
-                    country: entity.country || '',
                     latitude: Number(entity.latitude),
                     longitude: Number(entity.longitude),
                     visitDate: entity.visitDate,
@@ -82,7 +81,7 @@ app.http('addLocation', {
             return { status: 400, jsonBody: { error: 'Invalid JSON body' } };
         }
 
-        const { name, country, latitude, longitude, visitDate, message, photoUrl, sentBy } = body;
+        const { name, latitude, longitude, visitDate, message, photoUrl, sentBy } = body;
 
         if (!name || typeof name !== 'string' || name.trim() === '') {
             return { status: 400, jsonBody: { error: 'name is required' } };
@@ -108,7 +107,6 @@ app.http('addLocation', {
                 partitionKey: PARTITION_KEY,
                 rowKey,
                 name: name.trim(),
-                country: (country || '').trim(),
                 latitude: lat,
                 longitude: lng,
                 visitDate,

@@ -334,7 +334,7 @@
         .addTo(map)
         .bindPopup(`
           <div class="postcard-popup">
-            <div class="popup-header">📍 ${loc.name}${loc.country ? ', ' + loc.country : ''}</div>
+            <div class="popup-header">📍 ${loc.name}</div>
             <div class="popup-date">${formatDate(loc.visitDate)}</div>
             ${loc.sentBy ? `<div class="popup-from">From: ${escHtml(loc.sentBy)}</div>` : ''}
             ${loc.message ? `<div class="popup-msg">"${escHtml(loc.message)}"</div>` : ''}
@@ -361,7 +361,7 @@
     list.innerHTML = locations.map(loc => `
       <div class="postcard-entry" id="entry-${loc.id}" onclick="flyTo('${loc.id}')">
         <div class="postcard-stamp">${formatYear(loc.visitDate)}</div>
-        <div class="entry-location">📍 ${loc.name}${loc.country ? ', ' + loc.country : ''}</div>
+        <div class="entry-location">📍 ${loc.name}</div>
         <div class="entry-date">${formatDate(loc.visitDate)}${loc.sentBy ? ' · from ' + escHtml(loc.sentBy) : ''}</div>
         ${loc.message ? `<div class="entry-msg">"${escHtml(loc.message)}"</div>` : ''}
       </div>
