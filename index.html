@@ -199,6 +199,13 @@
       margin-bottom: 8px;
     }
 
+    .popup-from {
+      font-size: .8rem;
+      color: #922b21;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
     .popup-msg {
       font-family: 'Caveat', cursive;
       font-size: 1.05rem;
@@ -329,7 +336,8 @@
           <div class="postcard-popup">
             <div class="popup-header">📍 ${loc.name}${loc.country ? ', ' + loc.country : ''}</div>
             <div class="popup-date">${formatDate(loc.visitDate)}</div>
-            ${loc.message ? `<div class="popup-msg">"${loc.message}"</div>` : ''}
+            ${loc.sentBy ? `<div class="popup-from">From: ${escHtml(loc.sentBy)}</div>` : ''}
+            ${loc.message ? `<div class="popup-msg">"${escHtml(loc.message)}"</div>` : ''}
           </div>
         `, { maxWidth: 300 });
 
@@ -354,8 +362,8 @@
       <div class="postcard-entry" id="entry-${loc.id}" onclick="flyTo('${loc.id}')">
         <div class="postcard-stamp">${formatYear(loc.visitDate)}</div>
         <div class="entry-location">📍 ${loc.name}${loc.country ? ', ' + loc.country : ''}</div>
-        <div class="entry-date">${formatDate(loc.visitDate)}</div>
-        ${loc.message ? `<div class="entry-msg">"${loc.message}"</div>` : ''}
+        <div class="entry-date">${formatDate(loc.visitDate)}${loc.sentBy ? ' · from ' + escHtml(loc.sentBy) : ''}</div>
+        ${loc.message ? `<div class="entry-msg">"${escHtml(loc.message)}"</div>` : ''}
       </div>
     `).join('');
   }
@@ -372,6 +380,10 @@
     document.querySelectorAll('.postcard-entry').forEach(el => el.classList.remove('active'));
     const el = document.getElementById('entry-' + id);
     if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   function formatDate(d) {
