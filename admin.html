@@ -205,13 +205,10 @@
 
   <!-- ADD POSTCARD FORM -->
   <div class="card">
-    <h2>📮 Add a New Postcard</h2>
+    <h2 id="form-title">📮 Add a New Postcard</h2>
 
     <label>Location Name *</label>
     <input type="text" id="f-name" placeholder="e.g. Paris, Eiffel Tower, Lake Louise"/>
-
-    <label>Country</label>
-    <input type="text" id="f-country" placeholder="e.g. France"/>
 
     <label>Date of Visit *</label>
     <input type="date" id="f-date"/>
@@ -241,7 +238,8 @@
       </div>
     </div>
 
-    <button class="btn btn-primary" onclick="addLocation()">📌 Add to Map</button>
+    <button class="btn btn-primary" id="save-btn" onclick="saveLocation()">📌 Add to Map</button>
+    <button class="btn btn-secondary" id="cancel-btn" style="display:none" onclick="cancelEdit()">Cancel</button>
   </div>
 
   <!-- EXISTING LOCATIONS -->
@@ -424,9 +422,8 @@
   });
 
   // ── ADD LOCATION ───────────────────────────────
-  async function addLocation() {
+  async function saveLocation() {
     const name = document.getElementById('f-name').value.trim();
-    const country = document.getElementById('f-country').value.trim();
     const date = document.getElementById('f-date').value;
     const msg = document.getElementById('f-msg').value.trim();
     const sentBy = document.getElementById('f-sentby').value.trim();
@@ -438,17 +435,17 @@
     if (isNaN(lat) || isNaN(lng)) return toast('Valid coordinates required — use the Search button', 'error');
 
     try {
-      const r = await fetch('/api/locations', {
-        method: 'POST',
+      const r = await fetch(editingId ? '/api/locations/' + encodeURIComponent(editingId) : '/api/locations', {
+        method: editingId ? 'PUT' : 'POST',
         headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ name, country, latitude: lat, longitude: lng, visitDate: date, message: msg, sentBy })
+        body: JSON.stringify({ name, latitude: lat, longitude: lng, visitDate: date, message: msg, sentBy })
       });
 
       if (r.status === 401) return sessionExpired();
 
       if (r.ok) {
-        toast('Postcard added! 📮', 'success');
-        clearForm();
+        toast(editingId ? 'Postcard updated ✏️' : 'Postcard added! 📮', 'success');
+        cancelEdit();
         loadLocations();
       } else {
         const err = await r.json();
@@ -459,8 +456,38 @@
     }
   }
 
+  // ── EDIT LOCATION ──────────────────────────────
+  let editingId = null;
+  let locationsById = {};
+
+  function editLocation(id) {
+    const loc = locationsById[id];
+    if (!loc) return;
+    editingId = id;
+    document.getElementById('f-name').value = loc.name;
+    document.getElementById('f-date').value = loc.visitDate;
+    document.getElementById('f-sentby').value = loc.sentBy || '';
+    document.getElementById('f-msg').value = loc.message || '';
+    document.getElementById('f-lat').value = loc.latitude;
+    document.getElementById('f-lng').value = loc.longitude;
+    document.getElementById('f-geocode').value = '';
+    document.getElementById('geocode-result').textContent = '';
+    document.getElementById('form-title').textContent = '✏️ Edit Postcard';
+    document.getElementById('save-btn').textContent = '💾 Save Changes';
+    document.getElementById('cancel-btn').style.display = 'inline-block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    clearForm();
+    document.getElementById('form-title').textContent = '📮 Add a New Postcard';
+    document.getElementById('save-btn').textContent = '📌 Add to Map';
+    document.getElementById('cancel-btn').style.display = 'none';
+  }
+
   function clearForm() {
-    ['f-name','f-country','f-date','f-msg','f-sentby','f-lat','f-lng','f-geocode'].forEach(id => {
+    ['f-name','f-date','f-msg','f-sentby','f-lat','f-lng','f-geocode'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('geocode-result').textContent = '';
@@ -472,6 +499,7 @@
     try {
       const r = await fetch('/api/locations');
       const locs = await r.json();
+      locationsById = Object.fromEntries(locs.map(l => [l.id, l]));
       if (locs.length === 0) {
         list.innerHTML = '<em style="color:#999">No locations yet — add your first postcard above!</em>';
         return;
@@ -479,11 +507,14 @@
       list.innerHTML = locs.map(loc => `
         <div class="location-item">
           <div class="loc-info">
-            <div class="loc-name">📍 ${escText(loc.name)}${loc.country ? ', ' + escText(loc.country) : ''}</div>
+            <div class="loc-name">📍 ${escText(loc.name)}</div>
             <div class="loc-meta">${formatDate(loc.visitDate)}${loc.sentBy ? ' · from ' + escText(loc.sentBy) : ''} · ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</div>
             ${loc.message ? `<div class="loc-msg">"${escText(loc.message)}"</div>` : ''}
           </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary" style="font-size:.85rem;padding:5px 12px" data-id="${escText(loc.id)}" onclick="editLocation(this.dataset.id)">✏️</button>
           ${me.role === 'admin' ? `<button class="btn btn-danger" onclick="deleteLocation('${loc.id}', '${escHtml(loc.name)}')">🗑</button>` : ''}
+          </div>
         </div>
       `).join('');
     } catch {
@@ -500,7 +531,7 @@
         headers: authHeaders()
       });
       if (r.status === 401) return sessionExpired();
-      if (r.ok) { toast('Location removed', 'success'); loadLocations(); }
+      if (r.ok) { toast('Location removed', 'success'); if (editingId === id) cancelEdit(); loadLocations(); }
       else toast('Failed to delete', 'error');
     } catch { toast('Network error', 'error'); }
   }

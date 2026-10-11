@@ -36,7 +36,6 @@ app.http('getLocations', {
                 locations.push({
                     id: entity.rowKey,
                     name: entity.name,
-                    country: entity.country || '',
                     latitude: Number(entity.latitude),
                     longitude: Number(entity.longitude),
                     visitDate: entity.visitDate,
@@ -64,6 +63,43 @@ app.http('getLocations', {
     }
 });
 
+// Validates a POST/PUT body. Returns { error } or { fields, body }.
+async function parseLocation(request) {
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return { error: 'Invalid JSON body' };
+    }
+
+    const { name, latitude, longitude, visitDate, message, sentBy } = body;
+
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+        return { error: 'name is required' };
+    }
+    if (!visitDate || !/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) {
+        return { error: 'visitDate is required (YYYY-MM-DD)' };
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return { error: 'Valid latitude and longitude are required' };
+    }
+
+    return {
+        body,
+        fields: {
+            name: name.trim(),
+            latitude: lat,
+            longitude: lng,
+            visitDate,
+            message: String(message || '').trim(),
+            sentBy: (typeof sentBy === 'string' ? sentBy : '').trim().slice(0, 100)
+        }
+    };
+}
+
 // ── POST /api/locations  ────────────────────────────────────────────────────
 // Adds a new location. Requires an admin or edit user (x-auth-token header).
 app.http('addLocation', {
@@ -75,49 +111,25 @@ app.http('addLocation', {
             return { status: 401, jsonBody: { error: 'Unauthorized' } };
         }
 
-        let body;
-        try {
-            body = await request.json();
-        } catch {
-            return { status: 400, jsonBody: { error: 'Invalid JSON body' } };
-        }
-
-        const { name, country, latitude, longitude, visitDate, message, photoUrl, sentBy } = body;
-
-        if (!name || typeof name !== 'string' || name.trim() === '') {
-            return { status: 400, jsonBody: { error: 'name is required' } };
-        }
-        if (!visitDate || !/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) {
-            return { status: 400, jsonBody: { error: 'visitDate is required (YYYY-MM-DD)' } };
-        }
-
-        const lat = parseFloat(latitude);
-        const lng = parseFloat(longitude);
-        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-            return { status: 400, jsonBody: { error: 'Valid latitude and longitude are required' } };
-        }
+        const parsed = await parseLocation(request);
+        if (parsed.error) return { status: 400, jsonBody: { error: parsed.error } };
+        const { fields } = parsed;
 
         try {
             const client = getClient();
             // Ensure table exists
             try { await client.createTable(); } catch { /* already exists */ }
 
-            const rowKey = `${visitDate}_${Date.now()}`;
+            const rowKey = `${fields.visitDate}_${Date.now()}`;
 
             await client.createEntity({
                 partitionKey: PARTITION_KEY,
                 rowKey,
-                name: name.trim(),
-                country: (country || '').trim(),
-                latitude: lat,
-                longitude: lng,
-                visitDate,
-                message: (message || '').trim(),
-                sentBy: (typeof sentBy === 'string' ? sentBy : '').trim().slice(0, 100),
-                photoUrl: (photoUrl || '').trim()
+                ...fields,
+                photoUrl: String(parsed.body.photoUrl || '').trim()
             });
 
-            context.log(`Added location: ${name.trim()} on ${visitDate}`);
+            context.log(`Added location: ${fields.name} on ${fields.visitDate}`);
 
             return {
                 status: 201,
@@ -126,6 +138,41 @@ app.http('addLocation', {
         } catch (err) {
             context.log('Error adding location:', err.message);
             return { status: 500, jsonBody: { error: 'Failed to save location' } };
+        }
+    }
+});
+
+// ── PUT /api/locations/{id}  ────────────────────────────────────────────────
+// Edits a location. Requires an admin or edit user (x-auth-token header).
+app.http('updateLocation', {
+    methods: ['PUT'],
+    authLevel: 'anonymous',
+    route: 'locations/{id}',
+    handler: async (request, context) => {
+        if (!await isAuthorized(request, ['admin', 'edit'])) {
+            return { status: 401, jsonBody: { error: 'Unauthorized' } };
+        }
+
+        const id = request.params.id;
+        if (!id) return { status: 400, jsonBody: { error: 'id is required' } };
+
+        const parsed = await parseLocation(request);
+        if (parsed.error) return { status: 400, jsonBody: { error: parsed.error } };
+
+        try {
+            // Merge keeps fields the form doesn't send (e.g. photoUrl)
+            await getClient().updateEntity(
+                { partitionKey: PARTITION_KEY, rowKey: id, ...parsed.fields },
+                'Merge'
+            );
+            context.log(`Updated location: ${id}`);
+            return { status: 200, jsonBody: { message: 'Location updated' } };
+        } catch (err) {
+            if (err.statusCode === 404) {
+                return { status: 404, jsonBody: { error: 'Location not found' } };
+            }
+            context.log('Error updating location:', err.message);
+            return { status: 500, jsonBody: { error: 'Failed to update location' } };
         }
     }
 });
