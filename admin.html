@@ -182,14 +182,20 @@
 
 <header>
   <h1>✉️ Taets Family — Admin</h1>
-  <a href="/">← View Public Map</a>
+  <div>
+    <span id="whoami" style="font-size:.85rem;margin-right:14px"></span>
+    <a href="#" id="logout-link" style="display:none;margin-right:14px" onclick="logout();return false;">Sign out</a>
+    <a href="/">← View Public Map</a>
+  </div>
 </header>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <h2>🔐 Admin Login</h2>
-  <label for="admin-key">Admin Key</label>
-  <input type="password" id="admin-key" placeholder="Enter your admin key" autocomplete="current-password"/>
+  <label for="login-user">Username</label>
+  <input type="text" id="login-user" placeholder="Username" autocomplete="username"/>
+  <label for="admin-key">Password</label>
+  <input type="password" id="admin-key" placeholder="Password" autocomplete="current-password"/>
   <button class="btn btn-primary" style="width:100%" onclick="login()">Sign In</button>
 </div>
 
@@ -240,36 +246,153 @@
     <div id="location-list"><em style="color:#999">Loading…</em></div>
   </div>
 
+  <!-- USER MANAGEMENT (admin only) -->
+  <div class="card" id="users-card" style="display:none">
+    <h2>👥 Users</h2>
+    <div id="user-list"></div>
+    <h3 style="font-family:'Caveat',cursive;color:#922b21;margin:18px 0 10px">Add or update a user</h3>
+    <div class="form-row">
+      <div>
+        <label>Username</label>
+        <input type="text" id="u-name" placeholder="3-32 letters, numbers, . _ -" autocomplete="off"/>
+      </div>
+      <div>
+        <label>Password (blank = keep existing)</label>
+        <input type="password" id="u-pass" placeholder="At least 8 characters" autocomplete="new-password"/>
+      </div>
+    </div>
+    <label>Role</label>
+    <select id="u-role" style="width:100%;padding:9px 12px;margin-bottom:14px;border:1.5px solid #c8b89a;border-radius:5px">
+      <option value="edit">Edit — can add postcards</option>
+      <option value="admin">Admin — can also delete postcards and manage users</option>
+    </select>
+    <button class="btn btn-primary" onclick="saveUser()">💾 Save User</button>
+  </div>
+
 </div>
 
 <div id="toast"></div>
 
 <script>
-  let adminKey = '';
+  let token = '';
+  let me = null; // { username, role }
+
+  const authHeaders = (extra = {}) => ({ ...extra, 'Authorization': 'Bearer ' + token });
 
   // ── LOGIN ──────────────────────────────────────
-  function login() {
-    const k = document.getElementById('admin-key').value.trim();
-    if (!k) return toast('Enter your admin key', 'error');
-    adminKey = k;
-    // Test against API
-    fetch('/api/locations', { headers: { 'x-admin-key': k } })
-      .then(r => {
-        if (r.ok) {
-          document.getElementById('login-screen').style.display = 'none';
-          document.getElementById('admin-panel').style.display = 'block';
-          loadLocations();
-        } else {
-          toast('Invalid key — try again', 'error');
-          adminKey = '';
-        }
-      })
-      .catch(() => toast('Cannot reach API', 'error'));
+  async function login() {
+    const username = document.getElementById('login-user').value.trim();
+    const password = document.getElementById('admin-key').value;
+    if (!username || !password) return toast('Enter your username and password', 'error');
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (!r.ok) return toast('Invalid username or password', 'error');
+      const data = await r.json();
+      token = data.token;
+      me = { username: data.username, role: data.role };
+      sessionStorage.setItem('session', JSON.stringify({ token, me }));
+      showPanel();
+      if (data.bootstrap) toast('Signed in with the setup key — create user accounts below', 'success');
+    } catch {
+      toast('Cannot reach API', 'error');
+    }
+  }
+
+  function showPanel() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    document.getElementById('whoami').textContent = `${me.username} (${me.role})`;
+    document.getElementById('logout-link').style.display = 'inline';
+    document.getElementById('users-card').style.display = me.role === 'admin' ? 'block' : 'none';
+    loadLocations();
+    if (me.role === 'admin') loadUsers();
+  }
+
+  function logout() {
+    sessionStorage.removeItem('session');
+    location.reload();
+  }
+
+  // Session expired / revoked: return to the login screen.
+  function sessionExpired() {
+    toast('Session expired — please sign in again', 'error');
+    setTimeout(logout, 1200);
   }
 
   document.getElementById('admin-key').addEventListener('keydown', e => {
     if (e.key === 'Enter') login();
   });
+
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('session') || 'null');
+    if (saved && saved.token) { token = saved.token; me = saved.me; showPanel(); }
+  } catch { /* ignore */ }
+
+  // ── USER MANAGEMENT ────────────────────────────
+  async function loadUsers() {
+    const list = document.getElementById('user-list');
+    try {
+      const r = await fetch('/api/users', { headers: authHeaders() });
+      if (r.status === 401) return sessionExpired();
+      const users = await r.json();
+      list.innerHTML = users.length === 0
+        ? '<em style="color:#999">No users yet — add one below. Until then the setup key signs in as "admin".</em>'
+        : users.map(u => `
+          <div class="location-item">
+            <div class="loc-info">
+              <div class="loc-name">${escText(u.username)}</div>
+              <div class="loc-meta">${escText(u.role)}</div>
+            </div>
+            <button class="btn btn-danger" data-user="${escText(u.username)}" onclick="deleteUser(this.dataset.user)">🗑</button>
+          </div>`).join('');
+    } catch {
+      list.innerHTML = '<em style="color:#c00">Could not load users.</em>';
+    }
+  }
+
+  async function saveUser() {
+    const username = document.getElementById('u-name').value.trim();
+    const password = document.getElementById('u-pass').value;
+    const role = document.getElementById('u-role').value;
+    if (!username) return toast('Username is required', 'error');
+    try {
+      const r = await fetch('/api/users', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ username, password: password || undefined, role })
+      });
+      if (r.status === 401) return sessionExpired();
+      if (r.ok) {
+        toast('User saved', 'success');
+        document.getElementById('u-name').value = '';
+        document.getElementById('u-pass').value = '';
+        loadUsers();
+      } else {
+        const err = await r.json();
+        toast(err.error || 'Failed to save user', 'error');
+      }
+    } catch { toast('Network error', 'error'); }
+  }
+
+  async function deleteUser(username) {
+    if (!confirm(`Delete user "${username}"?`)) return;
+    try {
+      const r = await fetch('/api/users/' + encodeURIComponent(username), {
+        method: 'DELETE', headers: authHeaders()
+      });
+      if (r.status === 401) return sessionExpired();
+      if (r.ok) { toast('User deleted', 'success'); loadUsers(); }
+      else toast((await r.json()).error || 'Failed to delete user', 'error');
+    } catch { toast('Network error', 'error'); }
+  }
+
+  function escText(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
 
   // ── GEOCODE (Nominatim) ────────────────────────
   async function geocode() {
@@ -312,9 +435,11 @@
     try {
       const r = await fetch('/api/locations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name, country, latitude: lat, longitude: lng, visitDate: date, message: msg })
       });
+
+      if (r.status === 401) return sessionExpired();
 
       if (r.ok) {
         toast('Postcard added! 📮', 'success');
@@ -353,7 +478,7 @@
             <div class="loc-meta">${formatDate(loc.visitDate)} · ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</div>
             ${loc.message ? `<div class="loc-msg">"${loc.message}"</div>` : ''}
           </div>
-          <button class="btn btn-danger" onclick="deleteLocation('${loc.id}', '${escHtml(loc.name)}')">🗑</button>
+          ${me.role === 'admin' ? `<button class="btn btn-danger" onclick="deleteLocation('${loc.id}', '${escHtml(loc.name)}')">🗑</button>` : ''}
         </div>
       `).join('');
     } catch {
@@ -367,8 +492,9 @@
     try {
       const r = await fetch(`/api/locations/${id}`, {
         method: 'DELETE',
-        headers: { 'x-admin-key': adminKey }
+        headers: authHeaders()
       });
+      if (r.status === 401) return sessionExpired();
       if (r.ok) { toast('Location removed', 'success'); loadLocations(); }
       else toast('Failed to delete', 'error');
     } catch { toast('Network error', 'error'); }
