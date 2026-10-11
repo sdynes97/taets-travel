@@ -277,7 +277,7 @@
   let token = '';
   let me = null; // { username, role }
 
-  const authHeaders = (extra = {}) => ({ ...extra, 'Authorization': 'Bearer ' + token });
+  const authHeaders = (extra = {}) => ({ ...extra, 'x-auth-token': 'Bearer ' + token });
 
   // ── LOGIN ──────────────────────────────────────
   async function login() {

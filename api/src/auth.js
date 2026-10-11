@@ -73,7 +73,8 @@ function parseToken(token) {
 // The role is re-checked against the users table so removed/demoted users lose
 // access immediately. The bootstrap admin (no users exist yet) is token-only.
 async function authorize(request, allowedRoles) {
-    const header = request.headers.get('authorization') || '';
+    // SWA reserves the Authorization header, so the token travels in a custom one.
+    const header = request.headers.get('x-auth-token') || '';
     const match = header.match(/^Bearer (.+)$/i);
     const session = match && parseToken(match[1]);
     if (!session) return null;

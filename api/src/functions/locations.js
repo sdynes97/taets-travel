@@ -64,7 +64,7 @@ app.http('getLocations', {
 });
 
 // ── POST /api/locations  ────────────────────────────────────────────────────
-// Adds a new location. Requires an admin or edit user (Bearer token).
+// Adds a new location. Requires an admin or edit user (x-auth-token header).
 app.http('addLocation', {
     methods: ['POST'],
     authLevel: 'anonymous',
@@ -129,7 +129,7 @@ app.http('addLocation', {
 });
 
 // ── DELETE /api/locations/{id}  ─────────────────────────────────────────────
-// Removes a location by ID. Requires an admin user (Bearer token).
+// Removes a location by ID. Requires an admin user (x-auth-token header).
 app.http('deleteLocation', {
     methods: ['DELETE'],
     authLevel: 'anonymous',
