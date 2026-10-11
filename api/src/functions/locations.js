@@ -10,10 +10,15 @@ function getClient() {
     return TableClient.fromConnectionString(connStr, TABLE_NAME);
 }
 
-function isAuthorized(request) {
-    const adminKey = process.env.ADMIN_KEY;
-    const provided = request.headers.get('x-admin-key');
-    return adminKey && provided === adminKey;
+const { authorize } = require('../auth');
+
+// admin: add + delete locations (and manage users); edit: add locations only.
+async function isAuthorized(request, roles) {
+    try {
+        return !!(await authorize(request, roles));
+    } catch {
+        return false;
+    }
 }
 
 // ── GET /api/locations  ─────────────────────────────────────────────────────
@@ -59,13 +64,13 @@ app.http('getLocations', {
 });
 
 // ── POST /api/locations  ────────────────────────────────────────────────────
-// Adds a new location. Requires x-admin-key header.
+// Adds a new location. Requires an admin or edit user (Bearer token).
 app.http('addLocation', {
     methods: ['POST'],
     authLevel: 'anonymous',
     route: 'locations',
     handler: async (request, context) => {
-        if (!isAuthorized(request)) {
+        if (!await isAuthorized(request, ['admin', 'edit'])) {
             return { status: 401, jsonBody: { error: 'Unauthorized' } };
         }
 
@@ -124,13 +129,13 @@ app.http('addLocation', {
 });
 
 // ── DELETE /api/locations/{id}  ─────────────────────────────────────────────
-// Removes a location by ID. Requires x-admin-key header.
+// Removes a location by ID. Requires an admin user (Bearer token).
 app.http('deleteLocation', {
     methods: ['DELETE'],
     authLevel: 'anonymous',
     route: 'locations/{id}',
     handler: async (request, context) => {
-        if (!isAuthorized(request)) {
+        if (!await isAuthorized(request, ['admin'])) {
             return { status: 401, jsonBody: { error: 'Unauthorized' } };
         }
 

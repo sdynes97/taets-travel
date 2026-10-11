@@ -92,7 +92,8 @@ In the Azure Portal, go to your Static Web App:
 | Name | Value |
 |------|-------|
 | `AZURE_STORAGE_CONNECTION_STRING` | (paste the connection string from Step 2) |
-| `ADMIN_KEY` | (choose a strong password — you'll type this into the admin page) |
+| `ADMIN_KEY` | (a one-time setup password — see "First sign-in" below) |
+| `SESSION_SECRET` | (optional, long random string used to sign login tokens; defaults to `ADMIN_KEY`) |
 
 3. Click **Save**
 
@@ -111,8 +112,19 @@ Once complete, your site is live at:
 
 ## Using the Admin Page
 
+**Roles**
+
+| Role | Can do |
+|------|--------|
+| `admin` | Add and delete postcards, manage users |
+| `edit` | Add postcards |
+
+**First sign-in:** while no users exist, sign in with username `admin` and the `ADMIN_KEY` as the
+password. Create your real user accounts in the **Users** card (the setup key stops working as soon
+as the first user exists, so make sure at least one is an `admin`).
+
 1. Go to `/admin` on your site
-2. Enter your `ADMIN_KEY` password
+2. Sign in with your username and password
 3. To add a postcard:
    - Enter the location name and country
    - Enter the date visited
@@ -148,7 +160,7 @@ Azure provides a free TLS certificate automatically.
 
 **Map loads but shows no pins**: Check that `AZURE_STORAGE_CONNECTION_STRING` is set correctly in Configuration. Open browser DevTools → Network tab and look at the `/api/locations` response.
 
-**Admin login fails**: Check that `ADMIN_KEY` is set in Configuration. Keys are case-sensitive.
+**Admin login fails**: Usernames are case-insensitive, passwords are not. If no users exist yet, use username `admin` with the `ADMIN_KEY` value. If you lose all admin accounts, delete the rows from the `users` table in Storage Explorer to re-enable the setup key.
 
 **API returns 500**: Check the Function logs in Azure Portal → Static Web App → Functions → your function → Monitor.
 
