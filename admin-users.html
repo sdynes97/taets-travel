@@ -52,8 +52,7 @@
     </div>
     <label>Role</label>
     <select id="u-role" style="width:100%;padding:9px 12px;margin-bottom:14px;border:1.5px solid #c8b89a;border-radius:5px">
-      <option value="commenter">Commenter — can comment on postcards</option>
-      <option value="edit">Edit — can add and edit postcards and photos</option>
+      <option value="edit">Edit — can add and edit postcards and photos, and comment</option>
       <option value="admin">Admin — can also delete postcards and manage users</option>
     </select>
     <button class="btn btn-primary" onclick="saveUser()">💾 Save User</button>
@@ -77,10 +76,10 @@
           <div class="location-item">
             <div class="loc-info">
               <div class="loc-name">${escText(u.username)}</div>
-              <div class="loc-meta">${escText(u.role)}${u.approved ? '' : '<span class="badge-pending">pending approval</span>'}</div>
+              <div class="loc-meta">${escText(u.role)}${u.disabled ? '<span class="badge-pending">disabled</span>' : ''}</div>
             </div>
             <div style="display:flex;gap:6px">
-              ${u.approved ? '' : `<button class="btn btn-primary" style="font-size:.85rem;padding:5px 12px" data-user="${escText(u.username)}" data-role="${escText(u.role)}" onclick="approveUser(this.dataset.user, this.dataset.role)">✔ Approve</button>`}
+              ${u.disabled ? `<button class="btn btn-primary" style="font-size:.85rem;padding:5px 12px" data-user="${escText(u.username)}" data-role="${escText(u.role)}" onclick="enableUser(this.dataset.user, this.dataset.role)">Enable</button>` : ''}
               <button class="btn btn-danger" data-user="${escText(u.username)}" onclick="deleteUser(this.dataset.user)">🗑</button>
             </div>
           </div>`).join('');
@@ -113,16 +112,17 @@
     } catch { toast('Network error', 'error'); }
   }
 
-  async function approveUser(username, role) {
+  // Saving without a password keeps the existing one and clears the disabled flag.
+  async function enableUser(username, role) {
     try {
       const r = await fetch('/api/users', {
         method: 'POST',
         headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ username, role, approved: true })
+        body: JSON.stringify({ username, role })
       });
       if (r.status === 401) return sessionExpired();
-      if (r.ok) { toast(`${username} approved`, 'success'); loadUsers(); }
-      else toast((await r.json()).error || 'Failed to approve user', 'error');
+      if (r.ok) { toast(`${username} enabled`, 'success'); loadUsers(); }
+      else toast((await r.json()).error || 'Failed to enable user', 'error');
     } catch { toast('Network error', 'error'); }
   }
 

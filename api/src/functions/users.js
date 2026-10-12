@@ -25,7 +25,7 @@ app.http('login', {
             if (user) {
                 if (!auth.verifyPassword(password, user.passwordHash)) return unauthorized;
                 if (user.approved === false) {
-                    return { status: 403, jsonBody: { error: 'Your account is waiting for approval' } };
+                    return { status: 403, jsonBody: { error: 'This account is disabled. Ask an admin to enable it.' } };
                 }
                 return { status: 200, jsonBody: { token: auth.createToken(user.rowKey, user.role), username: user.rowKey, role: user.role } };
             }
@@ -79,7 +79,7 @@ app.http('saveUser', {
                 return { status: 400, jsonBody: { error: 'Username must be 3-32 characters: letters, numbers, . _ -' } };
             }
             if (!auth.ROLES.includes(role)) {
-                return { status: 400, jsonBody: { error: 'Role must be "admin", "edit" or "commenter"' } };
+                return { status: 400, jsonBody: { error: 'Role must be "admin" or "edit"' } };
             }
 
             const client = auth.getUsersClient();
@@ -96,21 +96,14 @@ app.http('saveUser', {
                 return { status: 400, jsonBody: { error: 'Cannot demote the last admin' } };
             }
 
-            // Staff are vetted by the admin; commenters keep their approval state
-            // unless the request sets it (new admin-created accounts start approved).
-            const approved = role !== 'commenter' ? true
-                : typeof body.approved === 'boolean' ? body.approved
-                : existing ? existing.approved !== false : true;
-
             await client.upsertEntity({
                 partitionKey: auth.USERS_PARTITION,
                 rowKey: username,
                 role,
-                approved,
                 passwordHash: password ? auth.hashPassword(password) : existing.passwordHash
             }, 'Replace');
 
-            return { status: existing ? 200 : 201, jsonBody: { username, role, approved } };
+            return { status: existing ? 200 : 201, jsonBody: { username, role } };
         } catch (err) {
             context.log('Error saving user:', err.message);
             return { status: 500, jsonBody: { error: 'Failed to save user' } };

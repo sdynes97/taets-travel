@@ -46,7 +46,7 @@ app.http('getComments', {
 });
 
 // ── POST /api/locations/{id}/comments ───────────────────────────────────────
-// Any signed-in, approved user.
+// Any signed-in user (admin or edit).
 app.http('addComment', {
     methods: ['POST'],
     authLevel: 'anonymous',

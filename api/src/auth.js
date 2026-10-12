@@ -4,8 +4,8 @@ const { TableClient } = require('@azure/data-tables');
 const USERS_TABLE = 'users';
 const USERS_PARTITION = 'user';
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
-// admin: everything; edit: add/edit postcards and photos; commenter: comment only.
-const ROLES = ['admin', 'edit', 'commenter'];
+// admin: everything; edit: add/edit postcards and photos, and comment.
+const ROLES = ['admin', 'edit'];
 const STAFF = ['admin', 'edit'];
 
 function getUsersClient() {
@@ -83,7 +83,7 @@ async function authorize(request, allowedRoles) {
 
     const entity = await getUser(session.username);
     if (entity) {
-        if (entity.approved === false) return null; // self-registered, awaiting approval
+        if (entity.approved === false) return null; // legacy sign-up an admin hasn't enabled
         session.role = entity.role;
     } else if (session.username !== BOOTSTRAP_USER || !(await bootstrapAvailable())) {
         return null;
@@ -92,9 +92,16 @@ async function authorize(request, allowedRoles) {
 }
 
 // ── User store ──────────────────────────────────────────────────────────────
+// "commenter" accounts (an older role) are the same as "edit".
+function normalizeRole(role) {
+    return role === 'commenter' ? 'edit' : role;
+}
+
 async function getUser(username) {
     try {
-        return await getUsersClient().getEntity(USERS_PARTITION, normalizeUsername(username));
+        const entity = await getUsersClient().getEntity(USERS_PARTITION, normalizeUsername(username));
+        entity.role = normalizeRole(entity.role);
+        return entity;
     } catch (err) {
         if (err.statusCode === 404) return null;
         throw err;
@@ -105,7 +112,7 @@ async function listUsers() {
     const users = [];
     try {
         for await (const e of getUsersClient().listEntities()) {
-            users.push({ username: e.rowKey, role: e.role, approved: e.approved !== false });
+            users.push({ username: e.rowKey, role: normalizeRole(e.role), disabled: e.approved === false });
         }
     } catch (err) {
         if (err.statusCode !== 404) throw err;
