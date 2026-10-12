@@ -257,6 +257,37 @@
 
     .popup-actions { margin-top: 8px; }
 
+    /* Camera badge on map pins and sidebar entries that have photos */
+    .pin-badge {
+      position: absolute;
+      top: -8px;
+      right: -12px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 3px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1.5px solid #c8392b;
+      font-size: .7rem;
+      line-height: 17px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,.4);
+      pointer-events: none;
+    }
+
+    .photo-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 8px;
+      border-radius: 10px;
+      background: #fdecea;
+      border: 1px solid #e6b8b2;
+      color: #922b21;
+      font-style: normal;
+      font-size: .72rem;
+      white-space: nowrap;
+    }
+
     .link-btn {
       background: none;
       border: none;
@@ -529,10 +560,10 @@
   }).addTo(map);
 
   // Custom postcard-red marker
-  function makeIcon(color = '#c8392b') {
+  function makeIcon(color = '#c8392b', photoCount = 0) {
     return L.divIcon({
       className: '',
-      html: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      html: `${photoCount ? `<span class="pin-badge" title="${photoCount} photo${photoCount > 1 ? 's' : ''}">📷</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
         <path d="M14 0 C6.27 0 0 6.27 0 14 C0 24.5 14 36 14 36 C14 36 28 24.5 28 14 C28 6.27 21.73 0 14 0Z"
               fill="${color}" stroke="#fff" stroke-width="2"/>
         <circle cx="14" cy="14" r="6" fill="#fff"/>
@@ -566,12 +597,12 @@
     document.getElementById('stat-count').textContent = locations.length;
 
     locations.forEach((loc, i) => {
-      const marker = L.marker([loc.latitude, loc.longitude], { icon: makeIcon() })
+      const marker = L.marker([loc.latitude, loc.longitude], { icon: makeIcon('#c8392b', (loc.photos || []).length) })
         .addTo(map)
         .bindPopup(`
           <div class="postcard-popup">
             <div class="popup-header">📍 ${escHtml(loc.name)}</div>
-            <div class="popup-date">${formatDate(loc.visitDate)}</div>
+            <div class="popup-date">${formatDate(loc.visitDate)}${photoBadge(loc)}</div>
             ${loc.sentBy ? `<div class="popup-from">From: ${escHtml(loc.sentBy)}</div>` : ''}
             ${loc.message ? `<div class="popup-msg">"${escHtml(loc.message)}"</div>` : ''}
             ${photoStrip(loc)}
@@ -600,7 +631,7 @@
       <div class="postcard-entry" id="entry-${loc.id}" onclick="flyTo('${loc.id}')">
         <div class="postcard-stamp">${formatYear(loc.visitDate)}</div>
         <div class="entry-location">📍 ${escHtml(loc.name)}</div>
-        <div class="entry-date">${formatDate(loc.visitDate)}${loc.sentBy ? ' · from ' + escHtml(loc.sentBy) : ''}</div>
+        <div class="entry-date">${formatDate(loc.visitDate)}${loc.sentBy ? ' · from ' + escHtml(loc.sentBy) : ''}${photoBadge(loc)}</div>
         ${loc.message ? `<div class="entry-msg">"${escHtml(loc.message)}"</div>` : ''}
         <div class="entry-comments"><button class="link-btn" onclick="event.stopPropagation(); openComments('${loc.id}')">💬 Comments</button></div>
       </div>
@@ -826,6 +857,11 @@
   // ── PHOTOS ─────────────────────────────────────
   const thumbUrl = (loc, pid) => `/api/photos/${encodeURIComponent(loc.id)}/${encodeURIComponent(pid)}?size=thumb`;
   const fullUrl = (loc, pid) => `/api/photos/${encodeURIComponent(loc.id)}/${encodeURIComponent(pid)}`;
+
+  function photoBadge(loc) {
+    const n = (loc.photos || []).length;
+    return n ? `<span class="photo-badge">📷 ${n} photo${n > 1 ? 's' : ''}</span>` : '';
+  }
 
   function photoStrip(loc) {
     if (!loc.photos || loc.photos.length === 0) return '';
