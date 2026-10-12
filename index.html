@@ -338,15 +338,8 @@
     .btn:hover { background: #a93226; }
     .btn:disabled { opacity: .6; cursor: default; }
 
-    .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .auth-note { margin-top: 14px; font-size: .78rem; color: #888; font-style: italic; }
 
-    .tab {
-      flex: 1; padding: 7px; border: 1.5px solid #c8b89a; border-radius: 5px;
-      background: #f5f0e8; cursor: pointer;
-      font-family: 'Caveat', cursive; font-size: 1.2rem; color: #5a4530;
-    }
-
-    .tab.active { background: #c8392b; border-color: #c8392b; color: #fff; }
 
     .form-msg { min-height: 20px; margin-bottom: 8px; font-size: .82rem; color: #c0392b; }
     .form-msg.ok { color: #27ae60; }
@@ -486,16 +479,13 @@
   <div class="modal">
     <div class="modal-head"><span>🔐 Sign in to comment</span><button class="modal-close" onclick="closeAuth()" aria-label="Close">✕</button></div>
     <div class="modal-body">
-      <div class="tabs">
-        <button class="tab active" id="tab-signin" onclick="setAuthMode('signin')">Sign in</button>
-        <button class="tab" id="tab-signup" onclick="setAuthMode('signup')">Sign up</button>
-      </div>
       <label for="auth-user">Username</label>
       <input type="text" id="auth-user" autocomplete="username" autocapitalize="none"/>
       <label for="auth-pass">Password</label>
       <input type="password" id="auth-pass" autocomplete="current-password"/>
       <div class="form-msg" id="auth-msg"></div>
       <button class="btn" id="auth-submit" onclick="submitAuth()">Sign in</button>
+      <p class="auth-note">Accounts are created by the site admin. Ask the family if you'd like to join in.</p>
     </div>
   </div>
 </div>
@@ -670,7 +660,7 @@
 
   function authLinkClick() {
     if (session) { saveSession(null); toast('Signed out'); if (commentsLocId) renderCommentForm(); }
-    else openAuth('signin');
+    else openAuth();
   }
 
   function toast(msg, type = 'success') {
@@ -680,31 +670,19 @@
     setTimeout(() => el.className = '', 2800);
   }
 
-  // ── SIGN IN / SIGN UP ──────────────────────────
-  let authMode = 'signin';
-
-  function openAuth(mode) {
-    setAuthMode(mode || 'signin');
-    document.getElementById('auth-msg').textContent = '';
+  // ── SIGN IN ────────────────────────────────────
+  function openAuth() {
+    setAuthMsg('');
     document.getElementById('auth-modal').classList.add('open');
     document.getElementById('auth-user').focus();
   }
 
   function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
 
-  function setAuthMode(mode) {
-    authMode = mode;
-    document.getElementById('tab-signin').classList.toggle('active', mode === 'signin');
-    document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
-    document.getElementById('auth-submit').textContent = mode === 'signin' ? 'Sign in' : 'Create account';
-    document.getElementById('auth-pass').autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
-    setAuthMsg('');
-  }
-
-  function setAuthMsg(text, ok) {
+  function setAuthMsg(text) {
     const el = document.getElementById('auth-msg');
     el.textContent = text;
-    el.className = 'form-msg' + (ok ? ' ok' : '');
+    el.className = 'form-msg';
   }
 
   async function submitAuth() {
@@ -715,20 +693,14 @@
     const btn = document.getElementById('auth-submit');
     btn.disabled = true;
     try {
-      const r = await fetch(authMode === 'signin' ? '/api/login' : '/api/register', {
+      const r = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        return setAuthMsg(authMode === 'signin' && r.status === 401
-          ? 'Invalid username or password' : (data.error || 'Something went wrong'));
-      }
-      if (authMode === 'signup') {
-        setAuthMode('signin');
-        document.getElementById('auth-pass').value = '';
-        return setAuthMsg(data.message, true);
+        return setAuthMsg(r.status === 401 ? 'Invalid username or password' : (data.error || 'Something went wrong'));
       }
       saveSession({ token: data.token, me: { username: data.username, role: data.role } });
       document.getElementById('auth-pass').value = '';
@@ -749,7 +721,7 @@
   function sessionExpired() {
     saveSession(null);
     toast('Please sign in again', 'error');
-    openAuth('signin');
+    openAuth();
   }
 
   // ── COMMENTS ───────────────────────────────────
@@ -800,7 +772,7 @@
   function renderCommentForm() {
     const el = document.getElementById('comment-form');
     if (!session) {
-      el.innerHTML = '<button class="btn" onclick="openAuth(\'signin\')">Sign in to comment</button>';
+      el.innerHTML = '<button class="btn" onclick="openAuth()">Sign in to comment</button>';
       return;
     }
     el.innerHTML = `

@@ -2,7 +2,6 @@ const { app } = require('@azure/functions');
 const auth = require('../auth');
 
 const USERNAME_RE = /^[a-z0-9._-]{3,32}$/;
-const MAX_PENDING = 100;
 const unauthorized = { status: 401, jsonBody: { error: 'Unauthorized' } };
 
 // ── POST /api/login ─────────────────────────────────────────────────────────
@@ -39,52 +38,6 @@ app.http('login', {
         } catch (err) {
             context.log('Login error:', err.message);
             return { status: 500, jsonBody: { error: 'Login failed' } };
-        }
-    }
-});
-
-// ── POST /api/register ──────────────────────────────────────────────────────
-// Self-registration: creates a "commenter" that an admin must approve.
-app.http('register', {
-    methods: ['POST'],
-    authLevel: 'anonymous',
-    route: 'register',
-    handler: async (request, context) => {
-        let body;
-        try { body = await request.json(); } catch {
-            return { status: 400, jsonBody: { error: 'Invalid JSON body' } };
-        }
-        const username = auth.normalizeUsername(body.username);
-        const password = body.password;
-
-        if (!USERNAME_RE.test(username) || username === auth.BOOTSTRAP_USER) {
-            return { status: 400, jsonBody: { error: 'Username must be 3-32 characters: letters, numbers, . _ - (and not "admin")' } };
-        }
-        if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
-            return { status: 400, jsonBody: { error: 'Password must be 8-128 characters' } };
-        }
-
-        try {
-            const client = auth.getUsersClient();
-            try { await client.createTable(); } catch { /* already exists */ }
-            if (await auth.getUser(username)) {
-                return { status: 409, jsonBody: { error: 'That username is taken' } };
-            }
-            const pending = (await auth.listUsers()).filter(u => !u.approved).length;
-            if (pending >= MAX_PENDING) {
-                return { status: 503, jsonBody: { error: 'Sign-ups are paused right now. Please try again later.' } };
-            }
-            await client.createEntity({
-                partitionKey: auth.USERS_PARTITION,
-                rowKey: username,
-                role: 'commenter',
-                approved: false,
-                passwordHash: auth.hashPassword(password)
-            });
-            return { status: 201, jsonBody: { message: 'Account created. An admin needs to approve it before you can sign in.' } };
-        } catch (err) {
-            context.log('Error registering:', err.message);
-            return { status: 500, jsonBody: { error: 'Failed to create account' } };
         }
     }
 });

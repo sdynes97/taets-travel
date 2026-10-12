@@ -124,9 +124,9 @@ Once complete, your site is live at:
 as the password. You land on the **Users** page (`/admin/users`); create your real accounts there.
 The setup key stops working as soon as an `admin` user exists.
 
-**Commenters:** visitors click **Sign in** on the public map, then **Sign up** to request an account.
-New accounts can't sign in until an admin approves them on the **Users** page (✔ Approve).
-Consider adding a rate-limit rule on `POST /api/register` and `POST /api/login` in your WAF.
+**Commenters:** there is no self-registration. An admin creates each commenter account on the **Users**
+page (role `commenter`) and shares the username and password. Commenters then click **Sign in** on the
+public map. Consider adding a rate-limit rule on `POST /api/login` in your WAF.
 
 **Pages:** `/admin` is for postcards and photos. `/admin/users` is for user accounts (admins only).
 
