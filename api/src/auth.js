@@ -4,7 +4,9 @@ const { TableClient } = require('@azure/data-tables');
 const USERS_TABLE = 'users';
 const USERS_PARTITION = 'user';
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
-const ROLES = ['admin', 'edit'];
+// admin: everything; edit: add/edit postcards and photos; commenter: comment only.
+const ROLES = ['admin', 'edit', 'commenter'];
+const STAFF = ['admin', 'edit'];
 
 function getUsersClient() {
     const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -81,6 +83,7 @@ async function authorize(request, allowedRoles) {
 
     const entity = await getUser(session.username);
     if (entity) {
+        if (entity.approved === false) return null; // self-registered, awaiting approval
         session.role = entity.role;
     } else if (session.username !== BOOTSTRAP_USER || !(await bootstrapAvailable())) {
         return null;
@@ -102,7 +105,7 @@ async function listUsers() {
     const users = [];
     try {
         for await (const e of getUsersClient().listEntities()) {
-            users.push({ username: e.rowKey, role: e.role });
+            users.push({ username: e.rowKey, role: e.role, approved: e.approved !== false });
         }
     } catch (err) {
         if (err.statusCode !== 404) throw err;
@@ -111,16 +114,16 @@ async function listUsers() {
 }
 
 // ── Bootstrap ───────────────────────────────────────────────────────────────
-// While no users exist, the legacy ADMIN_KEY env var signs in as the "admin"
-// user so the first real accounts can be created from the admin page.
+// While no admin user exists, the legacy ADMIN_KEY env var signs in as the
+// "admin" user so the first real accounts can be created from the admin page.
 const BOOTSTRAP_USER = 'admin';
 
 async function bootstrapAvailable() {
-    return process.env.ADMIN_KEY && (await listUsers()).length === 0;
+    return !!process.env.ADMIN_KEY && !(await listUsers()).some(u => u.role === 'admin');
 }
 
 module.exports = {
-    ROLES, USERS_PARTITION, BOOTSTRAP_USER,
+    ROLES, STAFF, USERS_PARTITION, BOOTSTRAP_USER,
     getUsersClient, normalizeUsername, hashPassword, verifyPassword, safeEqual,
     createToken, authorize, getUser, listUsers, bootstrapAvailable
 };

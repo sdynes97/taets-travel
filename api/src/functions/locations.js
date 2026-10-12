@@ -11,6 +11,7 @@ function getClient() {
 }
 
 const { authorize } = require('../auth');
+const { parsePhotos, deleteLocationData } = require('../storage');
 
 // admin: add + delete locations (and manage users); edit: add locations only.
 async function isAuthorized(request, roles) {
@@ -41,6 +42,7 @@ app.http('getLocations', {
                     visitDate: entity.visitDate,
                     message: entity.message || '',
                     sentBy: entity.sentBy || '',
+                    photos: parsePhotos(entity.photos),
                     photoUrl: entity.photoUrl || ''
                 });
             }
@@ -196,6 +198,7 @@ app.http('deleteLocation', {
         try {
             const client = getClient();
             await client.deleteEntity(PARTITION_KEY, id);
+            await deleteLocationData(id);
             context.log(`Deleted location: ${id}`);
             return { status: 200, jsonBody: { message: 'Location deleted' } };
         } catch (err) {

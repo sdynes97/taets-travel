@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="referrer" content="strict-origin-when-cross-origin"/>
+  <title>Users — Taets Family Travels</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/admin.css"/>
+</head>
+<body>
+
+<header>
+  <h1>✉️ Taets Family — Admin</h1>
+  <nav class="admin-nav">
+    <a href="/admin">📮 Postcards</a>
+    <a href="/admin/users" id="nav-users" class="active" style="display:none">👥 Users</a>
+  </nav>
+  <div>
+    <span id="whoami" style="font-size:.85rem;margin-right:14px"></span>
+    <a href="#" id="logout-link" style="display:none;margin-right:14px" onclick="logout();return false;">Sign out</a>
+    <a href="/">← View Public Map</a>
+  </div>
+</header>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <h2>🔐 Admin Login</h2>
+  <label for="login-user">Username</label>
+  <input type="text" id="login-user" placeholder="Username" autocomplete="username"/>
+  <label for="admin-key">Password</label>
+  <input type="password" id="admin-key" placeholder="Password" autocomplete="current-password"/>
+  <button class="btn btn-primary" style="width:100%" onclick="login()">Sign In</button>
+</div>
+
+<!-- PANEL (hidden until login) -->
+<div class="container" id="admin-panel" style="display:none">
+  <!-- USER MANAGEMENT -->
+  <div class="card" id="users-card">
+    <h2>👥 Users</h2>
+    <div id="user-list"></div>
+    <h3 style="font-family:'Caveat',cursive;color:#922b21;margin:18px 0 10px">Add or update a user</h3>
+    <div class="form-row">
+      <div>
+        <label>Username</label>
+        <input type="text" id="u-name" placeholder="3-32 letters, numbers, . _ -" autocomplete="off"/>
+      </div>
+      <div>
+        <label>Password (blank = keep existing)</label>
+        <input type="password" id="u-pass" placeholder="At least 8 characters" autocomplete="new-password"/>
+      </div>
+    </div>
+    <label>Role</label>
+    <select id="u-role" style="width:100%;padding:9px 12px;margin-bottom:14px;border:1.5px solid #c8b89a;border-radius:5px">
+      <option value="commenter">Commenter — can comment on postcards</option>
+      <option value="edit">Edit — can add and edit postcards and photos</option>
+      <option value="admin">Admin — can also delete postcards and manage users</option>
+    </select>
+    <button class="btn btn-primary" onclick="saveUser()">💾 Save User</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/admin-common.js"></script>
+<script>
+  // ── USER MANAGEMENT ────────────────────────────
+  async function loadUsers() {
+    const list = document.getElementById('user-list');
+    try {
+      const r = await fetch('/api/users', { headers: authHeaders() });
+      if (r.status === 401) return sessionExpired();
+      const users = await r.json();
+      list.innerHTML = users.length === 0
+        ? '<em style="color:#999">No users yet — add one below. Until an admin exists, the setup key signs in as "admin".</em>'
+        : users.map(u => `
+          <div class="location-item">
+            <div class="loc-info">
+              <div class="loc-name">${escText(u.username)}</div>
+              <div class="loc-meta">${escText(u.role)}${u.approved ? '' : '<span class="badge-pending">pending approval</span>'}</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              ${u.approved ? '' : `<button class="btn btn-primary" style="font-size:.85rem;padding:5px 12px" data-user="${escText(u.username)}" data-role="${escText(u.role)}" onclick="approveUser(this.dataset.user, this.dataset.role)">✔ Approve</button>`}
+              <button class="btn btn-danger" data-user="${escText(u.username)}" onclick="deleteUser(this.dataset.user)">🗑</button>
+            </div>
+          </div>`).join('');
+    } catch {
+      list.innerHTML = '<em style="color:#c00">Could not load users.</em>';
+    }
+  }
+
+  async function saveUser() {
+    const username = document.getElementById('u-name').value.trim();
+    const password = document.getElementById('u-pass').value;
+    const role = document.getElementById('u-role').value;
+    if (!username) return toast('Username is required', 'error');
+    try {
+      const r = await fetch('/api/users', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ username, password: password || undefined, role })
+      });
+      if (r.status === 401) return sessionExpired();
+      if (r.ok) {
+        toast('User saved', 'success');
+        document.getElementById('u-name').value = '';
+        document.getElementById('u-pass').value = '';
+        loadUsers();
+      } else {
+        const err = await r.json();
+        toast(err.error || 'Failed to save user', 'error');
+      }
+    } catch { toast('Network error', 'error'); }
+  }
+
+  async function approveUser(username, role) {
+    try {
+      const r = await fetch('/api/users', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ username, role, approved: true })
+      });
+      if (r.status === 401) return sessionExpired();
+      if (r.ok) { toast(`${username} approved`, 'success'); loadUsers(); }
+      else toast((await r.json()).error || 'Failed to approve user', 'error');
+    } catch { toast('Network error', 'error'); }
+  }
+
+  async function deleteUser(username) {
+    if (!confirm(`Delete user "${username}"?`)) return;
+    try {
+      const r = await fetch('/api/users/' + encodeURIComponent(username), {
+        method: 'DELETE', headers: authHeaders()
+      });
+      if (r.status === 401) return sessionExpired();
+      if (r.ok) { toast('User deleted', 'success'); loadUsers(); }
+      else toast((await r.json()).error || 'Failed to delete user', 'error');
+    } catch { toast('Network error', 'error'); }
+  }
+
+  adminInit({ roles: ['admin'], onReady: loadUsers });
+</script>
+</body>
+</html>
