@@ -177,6 +177,34 @@
     #toast.show { opacity: 1; }
     #toast.success { background: #27ae60; }
     #toast.error { background: #c0392b; }
+
+    /* ── PHONE LAYOUT ───────────────────────────── */
+    @media (max-width: 600px) {
+      header { padding: 12px 14px; flex-wrap: wrap; gap: 6px 12px; }
+      header h1 { font-size: 1.4rem; }
+      header > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+      header > div > * { margin-right: 0 !important; }
+
+      .container { margin: 16px auto; padding: 0 12px 40px; }
+      #login-screen { margin: 32px 14px; padding: 24px 18px; }
+      .card { padding: 18px 16px; margin-bottom: 18px; }
+
+      .form-row, .coord-row { grid-template-columns: 1fr; }
+
+      /* 16px inputs stop iOS from zooming the page on focus */
+      input[type="text"], input[type="date"], input[type="password"],
+      input[type="number"], textarea, select { font-size: 16px; }
+
+      .geocode-row { flex-direction: column; }
+      .geocode-row .btn { width: 100%; }
+      .card > .btn, #login-screen .btn { width: 100%; margin-top: 4px; }
+      .card > .btn + .btn { margin-left: 0; margin-top: 8px; }
+
+      .location-item { gap: 10px; }
+      .location-item .btn { padding: 8px 12px; }
+
+      #toast { left: 12px; right: 12px; bottom: 12px; text-align: center; }
+    }
   </style>
 </head>
 <body>
