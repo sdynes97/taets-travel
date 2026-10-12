@@ -232,8 +232,24 @@
 
     /* ── RESPONSIVE ──────────────────────────────── */
     @media (max-width: 700px) {
-      .sidebar { display: none; }
-      header h1 { font-size: 1.4rem; }
+      header { padding: 10px 14px; }
+      .stamp-icon { font-size: 1.6rem; }
+      .header-title { gap: 8px; }
+      header h1 { font-size: 1.3rem; }
+      header h1 span { font-size: .75rem; }
+      .header-stats { font-size: .7rem; flex-shrink: 0; margin-left: 10px; }
+      .header-stats strong { font-size: 1.3rem; }
+
+      /* Map on top, postcards list scrolls underneath */
+      .main { flex-direction: column; }
+      #map { flex: 0 0 45%; height: 45%; }
+      .sidebar {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        border-left: none;
+        border-top: 3px solid #c8392b;
+      }
     }
 
     .loading-overlay {
