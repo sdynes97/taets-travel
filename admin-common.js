@@ -28,12 +28,9 @@ async function login() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
-    if (r.status === 403) return toast((await r.json()).error || 'Account not approved yet', 'error');
+    if (r.status === 403) return toast((await r.json()).error || 'Account disabled', 'error');
     if (!r.ok) return toast('Invalid username or password', 'error');
     const data = await r.json();
-    if (data.role === 'commenter') {
-      return toast('This account can comment on the main page but has no admin access', 'error');
-    }
     token = data.token;
     me = { username: data.username, role: data.role };
     try { localStorage.setItem('session', JSON.stringify({ token, me })); } catch { /* storage blocked */ }
@@ -82,7 +79,7 @@ function adminInit(options) {
   });
   try {
     const saved = JSON.parse(localStorage.getItem('session') || 'null');
-    if (saved && saved.token && saved.me && saved.me.role !== 'commenter') {
+    if (saved && saved.token && saved.me) {
       token = saved.token;
       me = saved.me;
       showPanel();

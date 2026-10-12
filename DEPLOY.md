@@ -117,16 +117,16 @@ Once complete, your site is live at:
 | Role | Can do |
 |------|--------|
 | `admin` | Add, edit and delete postcards and photos, manage users, delete any comment |
-| `edit` | Add and edit postcards and photos |
-| `commenter` | Comment on postcards (and delete their own comments) |
+| `edit` | Add and edit postcards and photos, comment on postcards (and delete their own comments) |
 
 **First sign-in:** while no `admin` user exists, sign in with username `admin` and the `ADMIN_KEY`
 as the password. You land on the **Users** page (`/admin/users`); create your real accounts there.
 The setup key stops working as soon as an `admin` user exists.
 
-**Commenters:** visitors click **Sign in** on the public map, then **Sign up** to request an account.
-New accounts can't sign in until an admin approves them on the **Users** page (✔ Approve).
-Consider adding a rate-limit rule on `POST /api/register` and `POST /api/login` in your WAF.
+**Accounts:** there is no self-registration. An admin creates every account on the **Users** page and
+shares the username and password. Anyone with an account (admin or edit) can click **Sign in** on the
+public map to comment. Accounts from an older sign-up feature show as *disabled* until an admin clicks
+**Enable** (or deletes them). Consider adding a rate-limit rule on `POST /api/login` in your WAF.
 
 **Pages:** `/admin` is for postcards and photos. `/admin/users` is for user accounts (admins only).
 
