@@ -116,18 +116,30 @@ Once complete, your site is live at:
 
 | Role | Can do |
 |------|--------|
-| `admin` | Add and delete postcards, manage users |
-| `edit` | Add postcards |
+| `admin` | Add, edit and delete postcards and photos, manage users, delete any comment |
+| `edit` | Add and edit postcards and photos |
+| `commenter` | Comment on postcards (and delete their own comments) |
 
-**First sign-in:** while no users exist, sign in with username `admin` and the `ADMIN_KEY` as the
-password. Create your real user accounts in the **Users** card (the setup key stops working as soon
-as the first user exists, so make sure at least one is an `admin`).
+**First sign-in:** while no `admin` user exists, sign in with username `admin` and the `ADMIN_KEY`
+as the password. You land on the **Users** page (`/admin/users`); create your real accounts there.
+The setup key stops working as soon as an `admin` user exists.
+
+**Commenters:** visitors click **Sign in** on the public map, then **Sign up** to request an account.
+New accounts can't sign in until an admin approves them on the **Users** page (✔ Approve).
+Consider adding a rate-limit rule on `POST /api/register` and `POST /api/login` in your WAF.
+
+**Pages:** `/admin` is for postcards and photos. `/admin/users` is for user accounts (admins only).
+
+**Photos:** attach photos when adding or editing a postcard. They are resized in the browser
+(1800px full size plus a 320px thumbnail) and stored in a `photos` blob container in the same storage
+account, which is created automatically. Up to 20 photos per postcard. The API serves them, so the
+container can stay private. On the public map, clicking a pin shows scrolling thumbnails; click one to enlarge.
 
 1. Go to `/admin` on your site
 2. Sign in with your username and password
 3. To add a postcard:
-   - Enter the location name and country
-   - Enter the date visited
+   - Enter the location name, date, and who sent it
+   - Optionally attach photos
    - Type the postcard message
    - Click **🔍 Search** to auto-find coordinates (or type them manually)
    - Click **📌 Add to Map**

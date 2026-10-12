@@ -1,0 +1,221 @@
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Merriweather', Georgia, serif;
+      background: #f5f0e8;
+      color: #3a2e1e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #c8392b 0%, #922b21 100%);
+      color: #fff;
+      padding: 16px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 3px 12px rgba(0,0,0,.3);
+    }
+
+    header h1 { font-family: 'Caveat', cursive; font-size: 1.8rem; }
+    header a { color: #ffc; font-size: .85rem; text-decoration: none; }
+    header a:hover { text-decoration: underline; }
+
+    .container { max-width: 820px; margin: 36px auto; padding: 0 20px 60px; }
+
+    /* ── LOGIN ──────────────────────────────────── */
+    #login-screen {
+      background: #fff;
+      border: 2px solid #c8392b;
+      border-radius: 8px;
+      padding: 40px;
+      max-width: 400px;
+      margin: 80px auto;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(200,57,43,.15);
+    }
+
+    #login-screen h2 {
+      font-family: 'Caveat', cursive;
+      font-size: 1.8rem;
+      color: #c8392b;
+      margin-bottom: 20px;
+    }
+
+    /* ── FORMS / INPUTS ─────────────────────────── */
+    label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 4px;
+      color: #5a4530;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="password"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #c8b89a;
+      border-radius: 5px;
+      font-family: 'Merriweather', serif;
+      font-size: .9rem;
+      background: #fffdf8;
+      color: #3a2e1e;
+      margin-bottom: 14px;
+      transition: border-color .15s;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #c8392b;
+      background: #fff;
+    }
+
+    textarea { min-height: 90px; resize: vertical; }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 5px;
+      font-family: 'Caveat', cursive;
+      font-size: 1.15rem;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+
+    .btn:active { transform: scale(.97); }
+
+    .btn-primary { background: #c8392b; color: #fff; }
+    .btn-primary:hover { background: #a93226; }
+    .btn-secondary { background: #d4c5a0; color: #3a2e1e; }
+    .btn-secondary:hover { background: #c8b38a; }
+    .btn-danger { background: #e74c3c; color: #fff; font-size: .85rem; padding: 5px 12px; }
+    .btn-danger:hover { background: #c0392b; }
+
+    /* ── ADD POSTCARD CARD ──────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      border: 1.5px solid #d4c5a0;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+
+    .card h2 {
+      font-family: 'Caveat', cursive;
+      font-size: 1.6rem;
+      color: #c8392b;
+      margin-bottom: 20px;
+      border-bottom: 2px dashed #e0d0b5;
+      padding-bottom: 10px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 20px;
+    }
+
+    .geocode-row {
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+
+    .geocode-row input { flex: 1; }
+
+    .coord-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 20px;
+    }
+
+    /* ── LOCATION LIST ──────────────────────────── */
+    .location-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px dashed #d4c5a0;
+    }
+
+    .location-item:last-child { border-bottom: none; }
+
+    .loc-info { flex: 1; }
+    .loc-name { font-weight: 700; color: #922b21; margin-bottom: 3px; }
+    .loc-meta { font-size: .78rem; color: #888; font-style: italic; }
+    .loc-msg { font-family: 'Caveat', cursive; font-size: .95rem; color: #555; margin-top: 4px; }
+
+    /* ── PHOTOS ─────────────────────────────────── */
+    input[type="file"] { width: 100%; margin-bottom: 8px; font-size: .85rem; }
+    .photo-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .photo-thumb { position: relative; width: 84px; height: 84px; }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1.5px solid #d4c5a0; }
+    .photo-thumb button {
+      position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+      border: none; border-radius: 50%; background: #c0392b; color: #fff;
+      font-size: .8rem; line-height: 1; cursor: pointer;
+    }
+    .badge-pending {
+      display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 10px;
+      background: #f39c12; color: #fff; font-size: .7rem; font-style: normal; font-weight: 700;
+    }
+
+    /* ── STATUS TOAST ───────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 22px;
+      border-radius: 6px;
+      font-family: 'Caveat', cursive;
+      font-size: 1.1rem;
+      color: #fff;
+      opacity: 0;
+      transition: opacity .3s;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    #toast.show { opacity: 1; }
+    #toast.success { background: #27ae60; }
+    #toast.error { background: #c0392b; }
+
+    /* ── PHONE LAYOUT ───────────────────────────── */
+    @media (max-width: 600px) {
+      header { padding: 12px 14px; flex-wrap: wrap; gap: 6px 12px; }
+      header h1 { font-size: 1.4rem; }
+      header > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+      header > div > * { margin-right: 0 !important; }
+
+      .container { margin: 16px auto; padding: 0 12px 40px; }
+      #login-screen { margin: 32px 14px; padding: 24px 18px; }
+      .card { padding: 18px 16px; margin-bottom: 18px; }
+
+      .form-row, .coord-row { grid-template-columns: 1fr; }
+
+      /* 16px inputs stop iOS from zooming the page on focus */
+      input[type="text"], input[type="date"], input[type="password"],
+      input[type="number"], textarea, select { font-size: 16px; }
+
+      .geocode-row { flex-direction: column; }
+      .geocode-row .btn { width: 100%; }
+      .card > .btn, #login-screen .btn { width: 100%; margin-top: 4px; }
+      .card > .btn + .btn { margin-left: 0; margin-top: 8px; }
+
+      .location-item { gap: 10px; }
+      .location-item .btn { padding: 8px 12px; }
+
+      #toast { left: 12px; right: 12px; bottom: 12px; text-align: center; }
+    }
+
+    /* ── NAV ────────────────────────────────────── */
+    .admin-nav { display: flex; gap: 6px; }
+    .admin-nav a {
+      color: #fff; text-decoration: none; font-size: .9rem;
+      padding: 6px 12px; border-radius: 5px; background: rgba(255,255,255,.12);
+    }
+    .admin-nav a:hover { background: rgba(255,255,255,.25); text-decoration: none; }
+    .admin-nav a.active { background: rgba(0,0,0,.28); }
